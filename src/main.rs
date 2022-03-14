@@ -19,8 +19,7 @@ fn main() {
 
         // Only solves the task if the inputs and outputs have the same sizes.
         if task.train.iter().any(|example| {
-            example.input.len() != example.output.len()
-                || example.input[0].len() != example.output[0].len()
+            example.input.len() != example.output.len() || example.input[0].len() != example.output[0].len()
         }) {
             continue;
         }
@@ -67,15 +66,16 @@ fn solve(mut task: Task) -> Vec<Pair> {
     // recolor
     let ordering = color_ordering(&task.train.first().unwrap());
     for pair in &mut task.train {
-        //println!("Before recoloring:\n{pair}");
         recolor(pair, &ordering);
-        //println!("After recoloring:\n{pair}");
     }
 
     // induce
     let rules = induce(&task.train);
-
     
+    //for rule in &rules {
+    //    println!("{rule}");
+    //}
+
     // deduce
     task.test
         .into_iter()
@@ -93,7 +93,7 @@ fn solve(mut task: Task) -> Vec<Pair> {
 
 // Utility
 
-fn cell_to_string(cell: u8) -> String {
+pub fn cell_to_string(cell: u8) -> String {
     match cell {
         0 => "█".black(),
         1 => "█".blue(),
