@@ -1,10 +1,11 @@
-mod predicate;
+mod cellular;
+mod wave;
 
-use predicate::*;
+use cellular::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
-use std::{fs, io, fmt, path::Path};
+use std::{fs, io, fmt, path::Path, collections::HashMap};
 
 const TASKS_FILEPATH: &str = "data/training";
 
@@ -19,7 +20,7 @@ fn main() {
 
         // Only solves the task if the inputs and outputs have the same sizes.
         if task.train.iter().any(|example| {
-            example.input.len() != example.output.len() || example.input[0].len() != example.output[0].len()
+            example.input.len() <= N || example.input[0].len() <= N || example.input.len() != example.output.len() || example.input[0].len() != example.output[0].len()
         }) {
             continue;
         }
@@ -63,20 +64,21 @@ struct Task {
 }
 
 fn solve(mut task: Task) -> Vec<Pair> {
-    // recolor
+    // Recolors pairs.
     let ordering = color_ordering(&task.train.first().unwrap());
     for pair in &mut task.train {
         recolor(pair, &ordering);
     }
 
-    // induce
+    // Induces rules.
     let rules = induce(&task.train);
     
-    //for rule in &rules {
-    //    println!("{rule}");
-    //}
+    println!("Rules:");
+    for rule in &rules {
+        println!("{rule}");
+    }
 
-    // deduce
+    // Deduces solution.
     task.test
         .into_iter()
             .map(|mut test| {
@@ -88,6 +90,54 @@ fn solve(mut task: Task) -> Vec<Pair> {
                 solution
             })
         .collect()
+}
+
+
+
+
+// Recoloring
+
+type ColorOrdering = [u8; 10];
+
+pub fn color_ordering(pair: &Pair) -> ColorOrdering {
+    let mut counts = [0usize; 10];
+
+    for x in 0..pair.input.len() {
+        for y in 0..pair.input[0].len() {
+            counts[pair.input[x][y] as usize] += 1;
+            // NOTE: Outputs are not counted here.
+        }
+    }
+
+    let mut ordering = counts
+        .into_iter()
+        .enumerate()
+        .collect::<Vec<(usize, usize)>>();
+
+    ordering.sort_by(|(_, a), (_, b)| a.cmp(b));
+
+    ordering
+        .into_iter()
+        .map(|(color, _)| color as u8)
+        .collect::<Vec<u8>>()
+        .try_into()
+        .unwrap()
+}
+
+pub fn recolor(pair: &mut Pair, ordering: &ColorOrdering) {
+    // Computes color ordering and builds a map.
+    let mut map = HashMap::new();
+    for (i, color) in color_ordering(&pair).into_iter().enumerate() {
+        map.insert(color, i);
+    }
+
+    // Recolors pair.
+    for x in 0..pair.input.len() {
+        for y in 0..pair.input[0].len() {
+            pair.input[x][y] = ordering[*map.get(&pair.input[x][y]).unwrap()];
+            pair.output[x][y] = ordering[*map.get(&pair.output[x][y]).unwrap()];
+        }
+    }
 }
 
 
