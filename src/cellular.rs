@@ -3,11 +3,12 @@ use std::{
     collections::{ HashSet},
     fmt,
 };
+use itertools::Itertools;
 
-pub const N: usize = 2;
+pub const N: usize = 1;
 const ANY: u8 = 0;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Rule {
     input: [[u8; N]; N],
     output: [[u8; N]; N],
@@ -53,6 +54,7 @@ pub fn induce(examples: &Vec<Pair>) -> Rules {
         let mut unified_rules = Vec::new();
         for new_rule in new_rules {
             for old_rule in &rules {
+                // Unifies new and old rule.
                 let mut input = [[ANY; N]; N];
                 let mut output = [[ANY; N]; N];
 
@@ -76,18 +78,32 @@ pub fn induce(examples: &Vec<Pair>) -> Rules {
                         }
                     }
                 }
-
                 unified_rules.push(Rule{
                     input,
                     output
                 });
             }
         }
-        rules = unified_rules;
+
+        
+        rules = unified_rules.into_iter()
+            .filter(|rule| 
+                rule.input
+                    .into_iter()
+                    .map(|column| column.into_iter().filter(|color| *color != ANY).count())
+                    .sum::<usize>()
+                +
+                rule.output
+                    .into_iter()
+                    .map(|column| column.into_iter().filter(|color| *color != ANY).count())
+                    .sum::<usize>()
+                >= N
+            )
+            .unique()
+            .collect();
     }
 
-    // TODO: add de-duplicating
-    // NOTE: ANY can be considered equal with anything because a more specific rule is not better than a more general rule
+    // TODO: Order rules based on the number of non-ANY cells.
 
     rules
 }

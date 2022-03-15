@@ -1,7 +1,8 @@
 mod cellular;
 mod wave;
+mod probability;
 
-use cellular::*;
+use wave::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
@@ -20,7 +21,8 @@ fn main() {
 
         // Only solves the task if the inputs and outputs have the same sizes.
         if task.train.iter().any(|example| {
-            example.input.len() <= N || example.input[0].len() <= N || example.input.len() != example.output.len() || example.input[0].len() != example.output[0].len()
+            /*example.input.len() <= N || example.input[0].len() <= N || */
+            example.input.len() != example.output.len() || example.input[0].len() != example.output[0].len()
         }) {
             continue;
         }
@@ -43,7 +45,7 @@ fn main() {
         }
 
         // Waits for user input.
-        io::stdin().read_line(&mut String::new()).ok();
+        //io::stdin().read_line(&mut String::new()).ok();
     }
 
     println!("Number of tasks solved: {solved} / 100");
@@ -73,16 +75,17 @@ fn solve(mut task: Task) -> Vec<Pair> {
     // Induces rules.
     let rules = induce(&task.train);
     
-    println!("Rules:");
-    for rule in &rules {
-        println!("{rule}");
-    }
+    //println!("Rules:");
+    //for rule in &rules {
+    //    println!("{rule}");
+    //}
 
     // Deduces solution.
     task.test
         .into_iter()
             .map(|mut test| {
-                test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
+                //test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
+                test.output = test.input.clone();
                 let test_ordering = color_ordering(&test);
                 recolor(&mut test, &ordering);
                 let mut solution = deduce(test, &rules);
