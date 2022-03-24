@@ -1,6 +1,6 @@
 use crate::*;
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashSet, VecDeque},
     fmt
 };
 
@@ -98,18 +98,16 @@ pub fn deduce(mut test: Pair, rules: &Rules) -> Pair {
     // Applies constraints from the input frame.
     for x in 0..width {
         for y in 0..height {
-            let input_color = test.input[x][y];
             let mut domain = [false; 10];
             
+            let input_color = test.input[x][y];
             for rule in rules {
                 if rule.0 == Direction::Above && rule.2 == input_color {
                     domain[rule.1 as usize] = true;
                 }
             }
 
-            if domain.iter().any(|support| *support) {
-                domains[x][y] = domain;
-            }
+            domains[x][y] = domain;
         }
     }
 
@@ -117,39 +115,54 @@ pub fn deduce(mut test: Pair, rules: &Rules) -> Pair {
     for x in 0..width {
         for y in 0..height {
             if !propogate_changes(rules, &mut domains, x, y) {
-                println!("Error progating constraints from the input.");
-                return test;
+                //println!("Error progating constraints from the input.");
+                //return test;
             }
         }
     }
 
-    //println!("{domains:?}")
     // Finds solution.
     let mut iterations = 0;
-    let solution = solve(rules, domains, &mut iterations).unwrap_or(vec![vec![[false; 10]; height]; width]);
+    let solution = solve(rules, domains, &mut iterations, 0).unwrap_or(vec![vec![[false; 10]; height]; width]);
 
     // Converts solution domains into a grid.
+    let mut uncollapsed_tile_count = 0;
+    let mut no_solution_count = 0;
+
     for x in 0..width {
         for y in 0..height {
-            for (color, support) in solution[x][y].iter().enumerate() {
-                if *support {
-                    test.output[x][y] = color as u8;
-                    break;
+            let domain = solution[x][y];
+            let support_count = domain.into_iter().filter(|support| *support).count();
+            if support_count == 0 {
+                no_solution_count += 1;
+            } else if support_count > 1 {
+                uncollapsed_tile_count += 1;
+            } else {
+                for (color, support) in solution[x][y].iter().enumerate() {
+                    if *support {
+                        test.output[x][y] = color as u8;
+                        break;
+                    }
                 }
             }
+            
         }
     }
+
+    println!("Uncollapsed tile count: {uncollapsed_tile_count}");
+    println!("No solution count: {no_solution_count}");
 
     test
 }
 
-const MAX_ITERATION_COUNT: usize = 1000;
+const MAX_ITERATION_COUNT: usize = 500;
 
 // Searches for a valid solution.
 fn solve(
     rules: &Rules,
     domains: Domains,
     iterations: &mut usize,
+    depth: usize,
 ) -> Option<Domains> {
     // Returns if the number of iterations exceeds the maximum iteration count.
     *iterations += 1;
@@ -183,34 +196,37 @@ fn solve(
         return Some(domains);
     }
 
-    //println!("Iteration {}: {} left", iterations, unsolved_tiles.len());
-
     // Sorts the unsolved tiles by least entropy.
     unsolved_tiles.sort_unstable_by_key(|(_, _, entropy)| *entropy);
+    let unsolved_tile_count = unsolved_tiles.len();
+
+    //println!("Iteration {iterations}, Depth {depth}, {} left", unsolved_tile_count);
+    //println!("{unsolved_tiles:?}");
+
 
     // For every undecided tile:
-    for (x, y, _) in unsolved_tiles {
+    for (i, (x, y, _)) in unsolved_tiles.into_iter().enumerate() {
+        //println!("Depth {} progress: {} / {} tiles checked", depth, i, unsolved_tile_count);
+
+        //print!(" {x},{y} ");
         // For every open color:
         for (color, support) in domains[x][y].iter().enumerate() {
-            // Skips if the color is already eliminated.
-            if !support{
-                continue;
-            }
-
-            // Collapses the domain.
-            let mut new_domains = domains.clone();
-            new_domains[x][y] = [false; 10];
-            new_domains[x][y][color] = true;
-            
-            // Propogates changes and skips if there was a failure.
-            if !propogate_changes(rules, &mut new_domains, x, y) {
-                continue;
-            }
-
-            // Solves the next tile.
-            if let Some(solution) = solve(rules, new_domains, iterations) {
-                return Some(solution);
-            }
+           // print!("{color}-");
+            // If the color is not eliminated:
+            if *support {
+                // Collapses the domain.
+                let mut new_domains = domains.clone();
+                new_domains[x][y] = [false; 10];
+                new_domains[x][y][color] = true;
+                
+                // Propogates changes and skips if there was a failure.
+                if propogate_changes(rules, &mut new_domains, x, y) {
+                    // Solves the next tile.
+                    if let Some(solution) = solve(rules, new_domains, iterations, depth + 1) {
+                        return Some(solution);
+                    }
+                }
+            } 
         }
     }
 

@@ -1,12 +1,11 @@
-mod cellular;
+//mod cellular;
 mod wave;
-mod probability;
 
 use wave::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
-use std::{fs, io, fmt, path::Path, collections::HashMap};
+use std::{fs, fmt, path::Path, collections::HashMap};
 
 const TASKS_FILEPATH: &str = "data/training";
 
@@ -27,6 +26,7 @@ fn main() {
             continue;
         }
         // Finds solutions.
+        println!("Solving...");
         let solutions = solve(task.clone());
 
         // Displays and validates solutions.
@@ -42,10 +42,13 @@ fn main() {
             println!("{}", "The solutions were correct!".green());
         } else {
             println!("{}", "The solutions were not correct.".red());
+            //for pair in &task.test {
+            //    println!("{pair}");
+            //}
         }
 
         // Waits for user input.
-        //io::stdin().read_line(&mut String::new()).ok();
+        //std::io::stdin().read_line(&mut String::new()).ok();
     }
 
     println!("Number of tasks solved: {solved} / 100");
@@ -85,9 +88,10 @@ fn solve(mut task: Task) -> Vec<Pair> {
         .into_iter()
             .map(|mut test| {
                 //test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
-                test.output = test.input.clone();
+                
                 let test_ordering = color_ordering(&test);
                 recolor(&mut test, &ordering);
+                //test.output = test.input.clone();
                 let mut solution = deduce(test, &rules);
                 recolor(&mut solution, &test_ordering);
                 solution
@@ -197,7 +201,7 @@ impl fmt::Display for Pair {
                 string.push_str(&cell_to_string(self.output[x][y])[..]);
             }
             
-            string.push_str("\n");
+            string.push('\n');
         }
         
         write!(f, "{string}")
