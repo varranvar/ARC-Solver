@@ -1,7 +1,8 @@
 //mod cellular;
 mod wave;
+mod probability;
 
-use wave::*;
+use probability::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
@@ -87,11 +88,12 @@ fn solve(mut task: Task) -> Vec<Pair> {
     task.test
         .into_iter()
             .map(|mut test| {
-                //test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
-                
                 let test_ordering = color_ordering(&test);
                 recolor(&mut test, &ordering);
+                
+                test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
                 //test.output = test.input.clone();
+                
                 let mut solution = deduce(test, &rules);
                 recolor(&mut solution, &test_ordering);
                 solution
