@@ -12,7 +12,7 @@ const R: i16 = 1;
 pub enum Rule {
     Conjunction(Box<Rule>, Box<Rule>),
     Neighbor(i16, i16, u8),
-    NeighborhoodCount(u8, usize)
+    NeighborhoodCount(u8, usize) // Neighborhood Counts did not help the score so they were removed.
 }
 
 fn generate_rules(pair: &Pair, x: usize, y: usize) -> Vec<Rule> {
@@ -38,13 +38,11 @@ fn generate_rules(pair: &Pair, x: usize, y: usize) -> Vec<Rule> {
     }  
 
     // Generates neighborhood count rules.
-    for i in 0..10 {
+    //for i in 0..10 {
         //rules.push(Rule::NeighborhoodCount(i, neighborhood_counts[i as usize]));
-    }
+    //}
 
     // Generates conjunction rules.
-    
-    
     for i in 0..rules.len() {
         for j in i..rules.len() {
             let (left_rule, right_rule) = if rules[i] > rules[j] {
@@ -73,6 +71,9 @@ pub fn induce(examples: &Vec<Pair>) -> Model {
         occurrence: HashMap::new(),
         cooccurrence: HashMap::new()
     };
+
+    let mut rule_count = 0;
+
     for example in examples {
         let width = example.input.len();
         let height = example.input[0].len();
@@ -80,7 +81,10 @@ pub fn induce(examples: &Vec<Pair>) -> Model {
         for x in 0..width {
             for y in 0..height {
                 let color = example.output[x][y] as usize;
-                for rule in generate_rules(example, x, y) {
+                let rules = generate_rules(example, x, y);
+                rule_count += rules.len();
+
+                for rule in rules {
                     // Computes occurrence.
                     if let Some(occurrences) = model.occurrence.get_mut(&rule) {
                         *occurrences += 1;
@@ -101,6 +105,9 @@ pub fn induce(examples: &Vec<Pair>) -> Model {
         }
     }
     
+    // NOTE: This output is for the .csv.
+    print!("{rule_count},");
+
     model
 }
 
@@ -115,7 +122,7 @@ pub fn deduce(mut test: Pair, model: &Model) -> Pair {
             let mut probabilities = [0.0; 10];
 
             // Updates probabilities.
-            for rule in generate_rules(&test, x, y){
+            for rule in generate_rules(&test, x, y) {
                 let occurrences = *model.occurrence.get(&rule).unwrap_or(&0) as f32;
                 let cooccurrences = model.cooccurrence.get(&rule).unwrap_or(&[0; 10]);
         

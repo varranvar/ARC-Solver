@@ -6,9 +6,9 @@ use probability::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
-use std::{fs, fmt, path::Path, collections::HashMap};
+use std::{fs, fmt, path::Path, collections::HashMap, time::Instant};
 
-const TASKS_FILEPATH: &str = "data/training";
+const TASKS_FILEPATH: &str = "data/test";
 
 fn main() {
     let mut solved = 0;
@@ -17,7 +17,7 @@ fn main() {
         // Parses data.
         let path_str = format!("{}", path.unwrap().path().display());
         let file = fs::read_to_string(path_str.clone()).expect("Something went wrong reading the file");
-        let task: Task = serde_json::from_str(&file[..]).expect("JSON was not well-formatted");
+        let task: Task = serde_json::from_str::<TestTask>(&file[..]).expect("JSON was not well-formatted").into();
 
         // Only solves the task if the inputs and outputs have the same sizes.
         if task.train.iter().any(|example| {
@@ -27,26 +27,31 @@ fn main() {
             continue;
         }
         // Finds solutions.
-        println!("Solving...");
+        //println!("Solving...");
+        let now = Instant::now();
         let solutions = solve(task.clone());
+        let elapsed_time = now.elapsed().as_millis();
 
         // Displays and validates solutions.
-        println!("Solutions");
+        //println!("Solutions");
         let mut solutions_valid = true;
         for (generated_solution, real_solution) in solutions.iter().zip(task.test.iter()) {
-            println!("{generated_solution}\n");
+            //println!("{generated_solution}\n");
             solutions_valid &= generated_solution == real_solution;
         }
 
         if solutions_valid {
             solved += 1;
-            println!("{}", "The solutions were correct!".green());
+            //println!("{}", "The solutions were correct!".green());
         } else {
-            println!("{}", "The solutions were not correct.".red());
+            //println!("{}", "The solutions were not correct.".red());
             //for pair in &task.test {
             //    println!("{pair}");
             //}
         }
+
+        let first_test = task.test.first().unwrap();
+        println!("{},{},{},{}", first_test.input.len(), first_test.input[0].len(), elapsed_time, solutions_valid);
 
         // Waits for user input.
         //std::io::stdin().read_line(&mut String::new()).ok();
@@ -67,6 +72,34 @@ pub struct Pair {
 struct Task {
     train: Vec<Pair>,
     test: Vec<Pair>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct TestPair {
+    input: Grid,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct TestTask {
+    train: Vec<Pair>,
+    test: Vec<TestPair>,
+}
+
+impl Into<Task> for TestTask {
+    fn into(self) -> Task {
+        Task { 
+            train: self.train, 
+            test: self.test
+                .into_iter()
+                .map(|test_pair| 
+                    Pair { 
+                        input: test_pair.input.clone(), 
+                        output: test_pair.input 
+                    }
+                ) 
+                .collect()
+        }
+    }
 }
 
 fn solve(mut task: Task) -> Vec<Pair> {
