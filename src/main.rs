@@ -1,14 +1,12 @@
-//mod cellular;
-mod wave;
-mod probability;
+mod solver;
 
-use probability::*;
+use solver::*;
 use ::serde::Deserialize;
 use ::serde_json;
 use colored::*;
 use std::{fs, fmt, path::Path, collections::HashMap, time::Instant};
 
-const TASKS_FILEPATH: &str = "data/test";
+const TASKS_FILEPATH: &str = "data/training";
 
 fn main() {
     let mut solved = 0;
@@ -17,7 +15,7 @@ fn main() {
         // Parses data.
         let path_str = format!("{}", path.unwrap().path().display());
         let file = fs::read_to_string(path_str.clone()).expect("Something went wrong reading the file");
-        let task: Task = serde_json::from_str::<TestTask>(&file[..]).expect("JSON was not well-formatted").into();
+        let task: Task = serde_json::from_str::<Task>(&file[..]).expect("JSON was not well-formatted").into();
 
         // Only solves the task if the inputs and outputs have the same sizes.
         if task.train.iter().any(|example| {
@@ -121,9 +119,11 @@ fn solve(mut task: Task) -> Vec<Pair> {
     task.test
         .into_iter()
             .map(|mut test| {
+                println!("\n{}", test);
                 let test_ordering = color_ordering(&test);
                 recolor(&mut test, &ordering);
-                
+                println!("{}", test);
+
                 test.output = vec![vec![0; test.input[0].len()]; test.input.len()];
                 //test.output = test.input.clone();
                 
